@@ -45,14 +45,81 @@ var LeafSecureReviewDialog = function(domId) {
         }
     });
 
+    const renderChildren = (node = {}, flaggedFields = {}, depth = 0) => {
+        let cbuffer = '';
+        const child = node?.child ?? null;
+        if (child !== null) {
+            depth += 1;
+            let nodes = [];
+            for (let c in child) {  //it's an object, which does not have order
+                nodes.push(child[c]);
+            }
+            nodes.sort((a, b) => a.sort - b.sort);
+            nodes.forEach(n => {
+                const flaggedContent = flaggedFields[n.indicatorID] === 1 ?
+                    `<span style="color:#b00;">&nbsp;*sensitive</span>` : '';
+                cbuffer += `<div style="padding: 0.25rem 0.25rem 0.25rem ${4 * depth}px;">${n.name}${flaggedContent}</div>`;
+                cbuffer += renderChildren(n, flaggedFields, depth);
+            });
+            console.log(nodes)
+        }
+        return cbuffer;
+    }
+    const buildFormPreview = (name, formTree = [], flaggedFields = {}, modal = {}) => {
+        let buffer = `<div style="font-size:14px;line-height:1.3;max-width:600px;">`;
+        formTree.forEach((page, idx) => {
+            const flaggedContent = flaggedFields[page.indicatorID] === 1 ?
+                `<span color="#b00;">* sensitive</span>` : '';
+            buffer += `<div style="font-weight:bold;">Section ${idx + 1}<hr></div>
+                <div>${page.name}${flaggedContent}</div>`;
+            buffer += renderChildren(page, flaggedFields);
+            buffer += '<br><br>';
+        });
+        buffer += "</div>";
+        modal?.setTitle(name);
+        modal?.setContent(buffer);
+        modal?.setSaveHandler(() => {
+            modal?.clearDialog();
+            modal?.hide();
+        });
+        modal?.show();
+    }
+    const makeScopedPreviewFormListener = (id, name, flaggedFields) => () => {
+        fetch(`./api/form/category?id=${id}`)
+        .then(res => res.json())
+        .then(data => {
+            if(typeof dialog_message !== 'undefined') {
+                buildFormPreview(name, data, flaggedFields, dialog_message);
+            }
+        }).catch(err => console.log(err));
+    }
     function buildSensitiveGrid(sensitiveFields) {
-        var gridSensitive = new LeafFormGrid(prefixID +'sensitiveFields');
+        let flaggedFields = {};
+        sensitiveFields.forEach(f => flaggedFields[f.indicatorID] = 1);
+        let gridSensitive = new LeafFormGrid(prefixID +'sensitiveFields');
         gridSensitive.hideIndex();
         gridSensitive.setData(sensitiveFields);
         gridSensitive.setDataBlob(sensitiveFields);
         gridSensitive.setHeaders([
         {name: 'Form', indicatorID: 'formName', editable: false, callback: function(data, blob) {
-            $('#'+data.cellContainerID).html(gridSensitive.getDataByIndex(data.index).categoryName);
+            const formConfig = gridSensitive.getDataByIndex(data.index);
+            const formName = formConfig.categoryName;
+
+            let content = formName;
+            if (domId === 'leafSecureDialogContentPrint') {
+                const formID = formConfig.categoryID;
+                const listener = makeScopedPreviewFormListener(formID, formName, flaggedFields);
+                const styles = `style="display:flex;gap:1rem;justify-content:space-between;"`;
+                const btnID = `print_${formID}_${data.index}`;
+                content = `<div ${styles}>
+                    ${formName}
+                    <button id="${btnID}" type="button" class="buttonNorm">Preview Form</button>
+                </div>`;
+                $('#'+data.cellContainerID).html(content);
+                document.getElementById(btnID)?.addEventListener('click', listener);
+            } else {
+                $('#'+data.cellContainerID).html(content);
+            }
         }},
         {name: 'Field Name', indicatorID: 'fieldName', editable: false, callback: function(data, blob) {
             $('#'+data.cellContainerID).html(gridSensitive.getDataByIndex(data.index).name);
