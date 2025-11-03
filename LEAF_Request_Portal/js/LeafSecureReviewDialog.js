@@ -45,23 +45,21 @@ var LeafSecureReviewDialog = function(domId) {
         }
     });
 
-    const renderChildren = (node = {}, flaggedFields = {}, depth = 0) => {
+    const renderChildren = (node = {}, flaggedFields = {}) => {
         let cbuffer = '';
         const child = node?.child ?? null;
         if (child !== null) {
-            depth += 1;
             let nodes = [];
-            for (let c in child) {  //it's an object, which does not have order
+            for (let c in child) {  //make array to sort by sort order
                 nodes.push(child[c]);
             }
             nodes.sort((a, b) => a.sort - b.sort);
             nodes.forEach(n => {
                 const flaggedContent = flaggedFields[n.indicatorID] === 1 ?
-                    `<span style="color:#b00;">&nbsp;*sensitive</span>` : '';
-                cbuffer += `<div style="padding: 0.25rem 0.25rem 0.25rem ${4 * depth}px;">${n.name}${flaggedContent}</div>`;
-                cbuffer += renderChildren(n, flaggedFields, depth);
+                    `<span style="color:#b00;">&nbsp;<b>*sensitive</b></span>` : '';
+                cbuffer += `<div style="padding: 0.25rem 0;">${n.name}${flaggedContent}</div>`;
+                cbuffer += renderChildren(n, flaggedFields);
             });
-            console.log(nodes)
         }
         return cbuffer;
     }
@@ -69,7 +67,7 @@ var LeafSecureReviewDialog = function(domId) {
         let buffer = `<div style="font-size:14px;line-height:1.3;max-width:600px;">`;
         formTree.forEach((page, idx) => {
             const flaggedContent = flaggedFields[page.indicatorID] === 1 ?
-                `<span color="#b00;">* sensitive</span>` : '';
+                `<span style="color:#b00;">&nbsp;<b>*sensitive</b></span>` : '';
             buffer += `<div style="font-weight:bold;">Section ${idx + 1}<hr></div>
                 <div>${page.name}${flaggedContent}</div>`;
             buffer += renderChildren(page, flaggedFields);
