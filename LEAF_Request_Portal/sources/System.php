@@ -29,6 +29,72 @@ class System
 
     private $fileExtensionWhitelist;
 
+    private $mimeTypeMap = [
+        // Documents
+        'doc'  => ['application/msword'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'],
+        'docm' => ['application/vnd.ms-word.document.macroEnabled.12', 'application/zip'],
+        'dotx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'application/zip'],
+        'dotm' => ['application/vnd.ms-word.template.macroEnabled.12', 'application/zip'],
+        'pdf'  => ['application/pdf'],
+        'txt'  => ['text/plain'],
+        'rtf'  => ['text/rtf', 'application/rtf'],
+        // Spreadsheets
+        'csv'  => ['text/plain', 'text/csv', 'application/csv'],
+        'xls'  => ['application/vnd.ms-excel', 'application/msexcel'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'],
+        'xlsm' => ['application/vnd.ms-excel.sheet.macroEnabled.12', 'application/zip'],
+        'xltx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.template', 'application/zip'],
+        'xltm' => ['application/vnd.ms-excel.template.macroEnabled.12', 'application/zip'],
+        'xlsb' => ['application/vnd.ms-excel.sheet.binary.macroEnabled.12'],
+        'xlam' => ['application/vnd.ms-excel.addin.macroEnabled.12', 'application/zip'],
+        // Presentations
+        'ppt'  => ['application/vnd.ms-powerpoint'],
+        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'],
+        'pptm' => ['application/vnd.ms-powerpoint.presentation.macroEnabled.12', 'application/zip'],
+        'potx' => ['application/vnd.openxmlformats-officedocument.presentationml.template', 'application/zip'],
+        'potm' => ['application/vnd.ms-powerpoint.template.macroEnabled.12', 'application/zip'],
+        'ppam' => ['application/vnd.ms-powerpoint.addin.macroEnabled.12', 'application/zip'],
+        'ppsx' => ['application/vnd.openxmlformats-officedocument.presentationml.slideshow', 'application/zip'],
+        'ppsm' => ['application/vnd.ms-powerpoint.slideshow.macroEnabled.12', 'application/zip'],
+        'ppts' => ['application/vnd.ms-powerpoint', 'application/zip'],
+        // Graphics
+        'ai'   => ['application/postscript', 'application/pdf'],
+        'eps'  => ['application/postscript', 'image/x-eps'],
+        'png'  => ['image/png'],
+        'jpg'  => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'bmp'  => ['image/bmp', 'image/x-ms-bmp'],
+        'gif'  => ['image/gif'],
+        'tif'  => ['image/tiff'],
+        'svg'  => ['image/svg+xml', 'text/xml', 'application/xml', 'text/plain'],
+        // Web
+        'htm'  => ['text/html', 'text/plain'],
+        'html' => ['text/html', 'text/plain'],
+        'js'   => ['application/javascript', 'text/javascript', 'text/plain'],
+        'mjs'  => ['application/javascript', 'text/javascript', 'text/plain'],
+        'css'  => ['text/css', 'text/plain'],
+        'json' => ['application/json', 'text/plain'],
+        'xml'  => ['text/xml', 'application/xml', 'text/plain'],
+        'sql'  => ['text/plain', 'application/sql'],
+        'rdl'  => ['text/xml', 'application/xml', 'text/plain'],
+        // Archives
+        'zip'  => ['application/zip', 'application/x-zip-compressed'],
+        '7z'   => ['application/x-7z-compressed'],
+        'gz'   => ['application/gzip', 'application/x-gzip'],
+        // Other
+        'pbix' => ['application/zip', 'application/octet-stream'],
+        'vsd'  => ['application/vnd.visio', 'application/octet-stream'],
+        'pub'  => ['application/x-mspublisher', 'application/vnd.ms-publisher', 'application/octet-stream'],
+        'msg'  => ['application/vnd.ms-outlook', 'application/octet-stream'],
+        'ics'  => ['text/calendar', 'text/plain'],
+        'mht'  => ['message/rfc822', 'application/x-mimearchive', 'text/plain'],
+        'dwg'  => ['application/acad', 'application/x-acad', 'image/vnd.dwg', 'application/octet-stream'],
+        '3mf'  => ['application/vnd.ms-package.3dmanufacturing-3dmodel+xml', 'application/zip', 'application/octet-stream'],
+        'gcode'=> ['text/plain', 'application/octet-stream'],
+        'stl'  => ['application/vnd.ms-pki.stl', 'application/octet-stream', 'text/plain'],
+    ];
+
     private $site_data;
 
     private $dataActionLogger;
@@ -657,7 +723,100 @@ class System
             return 'Admin access required';
         }
 
+        // Validate file content MIME type matches claimed extension
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $detectedMime = $finfo->file($_FILES['file']['tmp_name']);
+
+        $dangerousMimeTypes = [
+            'application/x-dosexec',
+            'application/x-executable',
+            'application/x-msdos-program',
+            'application/x-msdownload',
+            'application/x-httpd-php',
+            'application/x-php',
+            'text/x-php',
+            'application/x-shellscript',
+            'application/x-sh',
+            'application/x-csh',
+            'application/x-perl',
+            'application/x-python',
+            'application/x-bat',
+            'application/x-msi',
+        ];
+
+        if (in_array($detectedMime, $dangerousMimeTypes))
+        {
+            return 'File content does not match the expected file type.';
+        }
+
+        $extLower = strtolower($ext);
+        if (isset($this->mimeTypeMap[$extLower]) && !in_array($detectedMime, $this->mimeTypeMap[$extLower]))
+        {
+            return 'File content does not match the expected file type.';
+        }
+
+        // Scan zip archives for dangerous file types
+        if ($extLower === 'zip')
+        {
+            $scanResult = $this->scanZipContents($_FILES['file']['tmp_name']);
+            if ($scanResult !== true)
+            {
+                return $scanResult;
+            }
+        }
+
         move_uploaded_file($_FILES['file']['tmp_name'], __DIR__ . '/../files/' . $fileName);
+
+        return true;
+    }
+
+    /**
+     * Scan zip archive contents for dangerous file types.
+     *
+     * @param string $filePath Path to the zip file to scan
+     *
+     * @return true|string True if safe, error message string if dangerous content found
+     */
+    private function scanZipContents($filePath)
+    {
+        $dangerousExtensions = [
+            'exe', 'dll', 'com', 'bat', 'cmd', 'msi', 'scr', 'pif',
+            'php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phps',
+            'sh', 'bash', 'csh', 'ksh',
+            'pl', 'py', 'rb', 'ps1', 'psm1',
+            'jar', 'class', 'war',
+            'vbs', 'vbe', 'wsf', 'wsh',
+            'app', 'action', 'command', 'workflow',
+            'reg', 'inf', 'hta', 'cpl',
+        ];
+
+        $zip = new \ZipArchive();
+        $result = $zip->open($filePath);
+        if ($result !== true)
+        {
+            return 'Unable to read zip file for security scanning.';
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++)
+        {
+            $entryName = $zip->getNameIndex($i);
+
+            // Skip directory entries
+            if (substr($entryName, -1) === '/')
+            {
+                continue;
+            }
+
+            $entryExt = strtolower(pathinfo($entryName, PATHINFO_EXTENSION));
+            if (in_array($entryExt, $dangerousExtensions))
+            {
+                $zip->close();
+
+                return 'Zip file contains a potentially dangerous file type: .' . $entryExt;
+            }
+        }
+
+        $zip->close();
 
         return true;
     }
