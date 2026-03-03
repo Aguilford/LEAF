@@ -29,6 +29,23 @@ class System
 
     private $fileExtensionWhitelist;
 
+    private $dangerousMimeTypes = [
+        'application/x-dosexec',
+        'application/x-executable',
+        'application/x-msdos-program',
+        'application/x-msdownload',
+        'application/x-httpd-php',
+        'application/x-php',
+        'text/x-php',
+        'application/x-shellscript',
+        'application/x-sh',
+        'application/x-csh',
+        'application/x-perl',
+        'application/x-python',
+        'application/x-bat',
+        'application/x-msi',
+    ];
+
     private $mimeTypeMap = [
         // Documents
         'doc'  => ['application/msword'],
@@ -727,24 +744,7 @@ class System
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $detectedMime = $finfo->file($_FILES['file']['tmp_name']);
 
-        $dangerousMimeTypes = [
-            'application/x-dosexec',
-            'application/x-executable',
-            'application/x-msdos-program',
-            'application/x-msdownload',
-            'application/x-httpd-php',
-            'application/x-php',
-            'text/x-php',
-            'application/x-shellscript',
-            'application/x-sh',
-            'application/x-csh',
-            'application/x-perl',
-            'application/x-python',
-            'application/x-bat',
-            'application/x-msi',
-        ];
-
-        if (in_array($detectedMime, $dangerousMimeTypes))
+        if (in_array($detectedMime, $this->dangerousMimeTypes))
         {
             return 'File content does not match the expected file type.';
         }
@@ -797,6 +797,8 @@ class System
             return 'Unable to read zip file for security scanning.';
         }
 
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+
         for ($i = 0; $i < $zip->numFiles; $i++)
         {
             $entryName = $zip->getNameIndex($i);
@@ -813,6 +815,31 @@ class System
                 $zip->close();
 
                 return 'Zip file contains a potentially dangerous file type: .' . $entryExt;
+            }
+
+            // Validate file content MIME type for each entry
+            $entryContents = $zip->getFromIndex($i);
+            if ($entryContents === false)
+            {
+                continue;
+            }
+
+            $detectedMime = $finfo->buffer($entryContents);
+
+            // Block dangerous MIME types regardless of extension
+            if (in_array($detectedMime, $this->dangerousMimeTypes))
+            {
+                $zip->close();
+
+                return 'Zip file contains a file with dangerous content: ' . htmlspecialchars($entryName);
+            }
+
+            // Check extension-to-MIME mapping if the extension is in our map
+            if (isset($this->mimeTypeMap[$entryExt]) && !in_array($detectedMime, $this->mimeTypeMap[$entryExt]))
+            {
+                $zip->close();
+
+                return 'Zip file contains a file whose content does not match its extension: ' . htmlspecialchars($entryName);
             }
         }
 
