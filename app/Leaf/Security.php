@@ -120,8 +120,12 @@ class Security
      * @return string|null
      *
      */
-    public static function isSafeSqlIdentifier(string $string): string|null
+    public static function isSafeSqlIdentifier(?string $string): string|null
     {
+        if (empty($string)) {
+            return null;
+        }
+
         if (preg_match('/^[A-Za-z0-9_-]+$/', $string)) {
             return $string;
         }
