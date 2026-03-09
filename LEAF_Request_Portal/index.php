@@ -56,6 +56,7 @@ switch ($action) {
     case 'newform':
         $main->assign('useLiteUI', true);
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/titleValidator.js',
             'js/formQuery.js',
             APP_JS_PATH . '/qr-code/qrcode.min.js'));
@@ -108,7 +109,9 @@ switch ($action) {
             array('css/view.css',
                 APP_JS_PATH . '/choicesjs/choices.min.css'));
         $main->assign('javascripts',
-            array('js/form.js',
+            array(
+                APP_JS_PATH . '/dompurify/dompurify.min.js',
+                'js/form.js',
                 'js/formQuery.js',
                 'js/gridInput.js',
                 'js/formGrid.js',
@@ -168,6 +171,7 @@ switch ($action) {
         $main->assign('useUI', true);
         $main->assign('stylesheets', array(APP_JS_PATH . '/choicesjs/choices.min.css'));
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/form.js',
             'js/gridInput.js',
             'js/workflow.js',
@@ -389,6 +393,7 @@ switch ($action) {
         break;
     case 'search':
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/form.js',
             'js/formGrid.js',
             'js/formQuery.js',
@@ -433,7 +438,9 @@ switch ($action) {
 
         $main->assign('stylesheets', array('css/report.css',
                 APP_JS_PATH . '/choicesjs/choices.min.css'));
-        $main->assign('javascripts', array('js/form.js',
+        $main->assign('javascripts', array(
+                APP_JS_PATH . '/dompurify/dompurify.min.js',
+                'js/form.js',
                'js/formGrid.js',
                'js/formQuery.js',
                'js/formSearch.js',
@@ -488,7 +495,9 @@ switch ($action) {
         exit();
     default:
 
-        $main->assign('javascripts', array('js/form.js',
+        $main->assign('javascripts', array(
+                APP_JS_PATH . '/dompurify/dompurify.min.js',
+                'js/form.js',
                 'js/formGrid.js',
                 'js/formQuery.js',
                 'js/formSearch.js',

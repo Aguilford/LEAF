@@ -247,12 +247,12 @@ switch ($action) {
         $t_form->right_delimiter = '}-->';
 
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             '../js/nationalEmployeeSelector.js',
             '../js/positionSelector.js',
             '../js/groupSelector.js',
             '../js/dialogController.js',
             '../js/orgchartForm.js',
-            APP_JS_PATH . '/dompurify/dompurify.min.js',
             APP_JS_PATH . '/qr-code/qrcode.min.js'));
         $main->assign('stylesheets', array('../css/employeeSelector.css',
                                            '../css/view_employee.css',
