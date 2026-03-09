@@ -790,14 +790,19 @@ class System
             'reg', 'inf', 'hta', 'cpl',
         ];
 
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+
+        if (!class_exists('\ZipArchive'))
+        {
+            return $this->scanZipContentsWithoutExtension($filePath, $dangerousExtensions, $finfo);
+        }
+
         $zip = new \ZipArchive();
         $result = $zip->open($filePath);
         if ($result !== true)
         {
             return 'Unable to read zip file for security scanning.';
         }
-
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
 
         for ($i = 0; $i < $zip->numFiles; $i++)
         {
@@ -846,6 +851,193 @@ class System
         $zip->close();
 
         return true;
+    }
+
+    private function scanZipContentsWithoutExtension($filePath, array $dangerousExtensions, \finfo $finfo)
+    {
+        $entries = $this->readZipEntries($filePath);
+        if ($entries === false)
+        {
+            return 'Unable to read zip file for security scanning.';
+        }
+
+        foreach ($entries as $entry)
+        {
+            $entryName = $entry['name'];
+            if (substr($entryName, -1) === '/')
+            {
+                continue;
+            }
+
+            $entryExt = strtolower(pathinfo($entryName, PATHINFO_EXTENSION));
+            if (in_array($entryExt, $dangerousExtensions))
+            {
+                return 'Zip file contains a potentially dangerous file type: .' . $entryExt;
+            }
+
+            $entryContents = $this->readZipEntryContents($filePath, $entry);
+            if ($entryContents === false)
+            {
+                continue;
+            }
+
+            $detectedMime = $finfo->buffer($entryContents);
+            if (in_array($detectedMime, $this->dangerousMimeTypes))
+            {
+                return 'Zip file contains a file with dangerous content: ' . htmlspecialchars($entryName);
+            }
+
+            if (isset($this->mimeTypeMap[$entryExt]) && !in_array($detectedMime, $this->mimeTypeMap[$entryExt]))
+            {
+                return 'Zip file contains a file whose content does not match its extension: ' . htmlspecialchars($entryName);
+            }
+        }
+
+        return true;
+    }
+
+    private function readZipEntries($filePath)
+    {
+        $data = @file_get_contents($filePath);
+        if ($data === false)
+        {
+            return false;
+        }
+
+        $eocdOffset = $this->findZipEndOfCentralDirectory($data);
+        if ($eocdOffset === false)
+        {
+            return false;
+        }
+
+        $eocd = unpack(
+            'Vsignature/vdisk/vcentralDisk/vdiskEntries/vtotalEntries/VcentralSize/VcentralOffset/vcommentLength',
+            substr($data, $eocdOffset, 22)
+        );
+
+        if (!isset($eocd['signature']) || $eocd['signature'] !== 0x06054b50)
+        {
+            return false;
+        }
+
+        $entries = [];
+        $offset = $eocd['centralOffset'];
+        for ($i = 0; $i < $eocd['totalEntries']; $i++)
+        {
+            $header = substr($data, $offset, 46);
+            if (strlen($header) < 46)
+            {
+                return false;
+            }
+
+            $entry = unpack(
+                'Vsignature/vversionMade/vversionNeeded/vflags/vcompression/vmodTime/vmodDate/Vcrc/VcompressedSize/VuncompressedSize/vnameLength/vextraLength/vcommentLength/vdiskStart/vinternalAttrs/VexternalAttrs/VlocalHeaderOffset',
+                $header
+            );
+
+            if (!isset($entry['signature']) || $entry['signature'] !== 0x02014b50)
+            {
+                return false;
+            }
+
+            $nameOffset = $offset + 46;
+            $name = substr($data, $nameOffset, $entry['nameLength']);
+            if ($name === false)
+            {
+                return false;
+            }
+
+            $entries[] = [
+                'name' => $name,
+                'compression' => $entry['compression'],
+                'compressedSize' => $entry['compressedSize'],
+                'uncompressedSize' => $entry['uncompressedSize'],
+                'localHeaderOffset' => $entry['localHeaderOffset'],
+            ];
+
+            $offset += 46 + $entry['nameLength'] + $entry['extraLength'] + $entry['commentLength'];
+        }
+
+        return $entries;
+    }
+
+    private function findZipEndOfCentralDirectory($data)
+    {
+        $maxCommentLength = 0xFFFF;
+        $searchStart = max(0, strlen($data) - ($maxCommentLength + 22));
+
+        for ($offset = strlen($data) - 22; $offset >= $searchStart; $offset--)
+        {
+            if (substr($data, $offset, 4) === "\x50\x4b\x05\x06")
+            {
+                return $offset;
+            }
+        }
+
+        return false;
+    }
+
+    private function readZipEntryContents($filePath, array $entry)
+    {
+        $handle = @fopen($filePath, 'rb');
+        if ($handle === false)
+        {
+            return false;
+        }
+
+        if (fseek($handle, $entry['localHeaderOffset']) !== 0)
+        {
+            fclose($handle);
+
+            return false;
+        }
+
+        $localHeader = fread($handle, 30);
+        if ($localHeader === false || strlen($localHeader) < 30)
+        {
+            fclose($handle);
+
+            return false;
+        }
+
+        $parsed = unpack(
+            'Vsignature/vversionNeeded/vflags/vcompression/vmodTime/vmodDate/Vcrc/VcompressedSize/VuncompressedSize/vnameLength/vextraLength',
+            $localHeader
+        );
+        if (!isset($parsed['signature']) || $parsed['signature'] !== 0x04034b50)
+        {
+            fclose($handle);
+
+            return false;
+        }
+
+        $dataOffset = $entry['localHeaderOffset'] + 30 + $parsed['nameLength'] + $parsed['extraLength'];
+        if (fseek($handle, $dataOffset) !== 0)
+        {
+            fclose($handle);
+
+            return false;
+        }
+
+        $compressedData = fread($handle, $entry['compressedSize']);
+        fclose($handle);
+
+        if ($compressedData === false || strlen($compressedData) !== (int)$entry['compressedSize'])
+        {
+            return false;
+        }
+
+        switch ($entry['compression'])
+        {
+            case 0:
+                return $compressedData;
+            case 8:
+                $inflated = @gzinflate($compressedData);
+
+                return $inflated === false ? false : $inflated;
+            default:
+                return false;
+        }
     }
 
     public function removeFile($in)
