@@ -129,7 +129,9 @@ switch ($action) {
         $t_iframe->right_delimiter = '}-->';
 
         //$main->assign('useDojoUI', true);
-        $main->assign('javascripts', array('js/employeeSelector.js',
+        $main->assign('javascripts', array(
+                APP_JS_PATH . '/dompurify/dompurify.min.js',
+                'js/employeeSelector.js',
                 'js/positionSelector.js',
                 'js/groupSelector.js',
                 'js/dialogController.js',

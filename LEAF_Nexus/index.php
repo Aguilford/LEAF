@@ -135,6 +135,7 @@ switch ($action) {
         //$main->assign('useDojoUI', true);
 
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/nationalEmployeeSelector.js',
             'js/orgchartForm.js',
             'js/dialogController.js',
@@ -186,6 +187,7 @@ switch ($action) {
         //$main->assign('useDojoUI', true);
 
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/nationalEmployeeSelector.js',
             'js/orgchartForm.js',
             'js/dialogController.js',
@@ -235,6 +237,7 @@ switch ($action) {
         //$main->assign('useDojoUI', true);
 
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/positionSelector.js',
             'js/orgchartForm.js',
             'js/dialogController.js',
@@ -288,6 +291,7 @@ switch ($action) {
 
         //$main->assign('useDojoUI', true);
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/employeeSelector.js',
             'js/dialogController.js',
             'js/orgchartForm.js',
@@ -315,6 +319,7 @@ switch ($action) {
 
         $main->assign('useDojoUI', true);
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/positionSelector.js',
             'js/dialogController.js',
             'js/orgchartForm.js',
@@ -334,6 +339,7 @@ switch ($action) {
         $t_form->assign('CSRFToken', $_SESSION['CSRFToken']);
         //$main->assign('useDojoUI', true);
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/groupSelector.js',
             'js/dialogController.js',
             'js/orgchartForm.js',
@@ -352,6 +358,7 @@ switch ($action) {
 
         //$main->assign('useDojoUI', true);
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/employeeSelector.js',
             'js/positionSelector.js',
             'js/groupSelector.js',
@@ -378,6 +385,7 @@ switch ($action) {
 
         //$main->assign('useDojoUI', true);
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/employeeSelector.js',
             'js/positionSelector.js',
             'js/groupSelector.js',
@@ -428,6 +436,7 @@ switch ($action) {
 
         //$main->assign('useDojoUI', true);
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/employeeSelector.js',
             'js/positionSelector.js',
             'js/groupSelector.js',
@@ -469,6 +478,7 @@ switch ($action) {
 
         //$main->assign('useDojoUI', true);
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/employeeSelector.js',
             'js/positionSelector.js',
             'js/groupSelector.js',
@@ -507,6 +517,7 @@ switch ($action) {
         $t_form->right_delimiter = '}-->';
 
         $main->assign('javascripts', array(
+            APP_JS_PATH . '/dompurify/dompurify.min.js',
             'js/employeeSelector.js',
             'js/positionSelector.js',
             'js/groupSelector.js',
@@ -590,6 +601,7 @@ switch ($action) {
             $t_form->assign('is_admin', $oc_login->getMembership()['groupID'][1]);
 
             $main->assign('javascripts', array(
+                APP_JS_PATH . '/dompurify/dompurify.min.js',
                 'js/employeeSelector.js',
                 'js/positionSelector.js',
                 'js/groupSelector.js',
