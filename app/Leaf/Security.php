@@ -111,6 +111,44 @@ class Security
             return null;
         }
     }
+
+    /**
+     * Verify that a string is safe to use in a straight query call.
+     *
+     * @param string $string
+     *
+     * @return string|null
+     *
+     */
+    public static function isSafeSqlIdentifier(?string $string): string|null
+    {
+        if (empty($string)) {
+            return null;
+        }
+
+        if (preg_match('/^[A-Za-z0-9_-]+$/', $string)) {
+            return $string;
+        }
+
+        return null;
+    }
+
+    public static function denyAndLog(string $reason, array $ctx = []): void
+    {
+        $log = [
+            'event' => 'db_access_denied',
+            'mysql_code' => 1049,
+            'http_code' => 403,
+            'reason' => $reason,
+            'context' => $ctx,
+            'uri' => $_SERVER['REQUEST_URI'] ?? '',
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ];
+        error_log('LEAF ' . json_encode($log));
+
+        http_response_code(403);
+        exit;
+    }
 }
 
 /**
