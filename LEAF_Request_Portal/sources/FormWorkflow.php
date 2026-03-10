@@ -10,6 +10,7 @@
 
 namespace Portal;
 use App\Leaf\Db;
+use App\Leaf\Security;
 use App\Leaf\XSSHelpers;
 
 class FormWorkflow
@@ -431,6 +432,10 @@ class FormWorkflow
                     $groupDesignatedIndicators[$depRecord['indicatorID_for_assigned_groupID']] = 1;
                     break;
 
+                case -4: // dependencyID -4 is for the LEAF Agent
+                    $records[$depRecordID]['isActionable'] = $this->login->getUserID() == getenv('APP_AGENT_USERNAME');
+                    break;
+
                 default:
                     // check groups associated with dependency privileges
                     foreach ($res2 as $group)
@@ -648,7 +653,11 @@ class FormWorkflow
                     continue;
                 }
                 $res[$i]['dependencyActions'] = $this->getDependencyActions($res[$i]['workflowID'], $res[$i]['stepID']);
-
+                foreach($res[$i]['dependencyActions'] as $aIdx => $action) {
+                    if(isset($action['actionIcon'])) {
+                        $res[$i]['dependencyActions'][$aIdx]['actionIcon'] = XSSHelpers::scrubFilename($action['actionIcon']);
+                    }
+                }
                 $res[$i]['hasAccess'] = $res[$i]['isActionable'];
 
 
@@ -973,6 +982,12 @@ class FormWorkflow
                         return 'User account is not part of the designated group';
                     }
 
+                    break;
+                case -4: // dependencyID -4 : LEAF Agent
+                    if($this->login->getUserID() != getenv('APP_AGENT_USERNAME')) {
+                        http_response_code(403);
+                        return 'Mismatched LEAF Agent account';
+                    }
                     break;
                 default:
                     http_response_code(400);
@@ -1786,14 +1801,16 @@ class FormWorkflow
             $format = trim(strtolower(explode(PHP_EOL, $field["format"])[0] ?? ""));
             switch($format) {
                 case "grid":
-                    if(!empty($data) && is_array(unserialize($data))){
-                        $data = $this->buildGrid(unserialize($data));
+                    $temp = @Security::parseSerializedData($data);
+                    if(!empty($data) && is_array($temp)){
+                        $data = $this->buildGrid($temp);
                     }
                     break;
                 case "checkboxes":
                 case "multiselect":
-                    if(!empty($data) && is_array(unserialize($data))){
-                        $formatted = $this->buildMultiOption(unserialize($data));
+                    $temp = @Security::parseSerializedData($data);
+                    if(!empty($data) && is_array($temp)){
+                        $formatted = $this->buildMultiOption($temp);
                         $data = $formatted["content"];
                     }
                     break;

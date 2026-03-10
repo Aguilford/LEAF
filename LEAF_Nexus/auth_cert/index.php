@@ -1,5 +1,6 @@
 <?php
 use App\Leaf\Db;
+use App\Leaf\Security;
 /*
 * As a work of the United States government, this project is in the public domain within the United States.
 */
@@ -10,7 +11,7 @@ use App\Leaf\Db;
 
 */
 
-require_once getenv('APP_LIBS_PATH') . '/loaders/Leaf_autoloader.php';
+require_once '/var/www/html/app/libs/loaders/Leaf_autoloader.php';
 
 // For Jira Ticket:LEAF-2471/remove-all-http-redirects-from-code
 //$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https://' : 'http://';
@@ -18,15 +19,8 @@ $protocol = 'https://';
 
 if (isset($_COOKIE['REMOTE_USER']))
 {
-    $redirect = '';
-    if (isset($_GET['r']))
-    {
-        $redirect = $protocol . HTTP_HOST . base64_decode($_GET['r']);
-    }
-    else
-    {
-        $redirect = $protocol . HTTP_HOST . dirname($_SERVER['PHP_SELF']) . '/../';
-    }
+    $defaultRedirect = $protocol . HTTP_HOST . dirname($_SERVER['PHP_SELF']) . '/../';
+    $redirect = Security::getSafeRedirectFromRequest(HTTP_HOST, $defaultRedirect, $protocol);
 
     $user = decryptUser($_COOKIE['REMOTE_USER']);
 

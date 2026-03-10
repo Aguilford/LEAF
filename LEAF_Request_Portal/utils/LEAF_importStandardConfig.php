@@ -1,7 +1,10 @@
 <?php
+
+use App\Leaf\Security;
+
 ini_set('display_errors', 0); // Set to 1 to display errors
 
-require_once getenv('APP_LIBS_PATH') . '/loaders/Leaf_autoloader.php';
+require_once '/var/www/html/app/libs/loaders/Leaf_autoloader.php';
 
 $debug = false;
 $doc_root = $_SERVER['DOCUMENT_ROOT'];
@@ -82,7 +85,7 @@ function importTable($db, $tempFolder, $table) {
     $fieldSQL = '`'. implode("`, `", $fields) . '`';
 
     $file = file_get_contents($tempFolder . $table . '.sql');
-    $data = unserialize($file);
+    $data = @Security::parseSerializedData($file);
     foreach($data as $row) {
         $vars = [];
         foreach($fields as $described) {
