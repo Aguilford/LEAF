@@ -195,10 +195,10 @@ server {
         add_header Content-Type text/plain;
     }
 
-    # Restrict uploaded files directory - no PHP execution
+    # Restrict uploaded files directory - no PHP or EXE delivery
     location ~* ^/.+/files/ {
-        # Block PHP execution entirely
-        location ~* \.php$ {
+        # Block PHP and EXE files entirely
+        location ~* \.(php|exe)$ {
             deny all;
         }
 
