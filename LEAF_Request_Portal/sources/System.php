@@ -86,8 +86,6 @@ class System
         'tif'  => ['image/tiff'],
         'svg'  => ['image/svg+xml', 'text/xml', 'application/xml', 'text/plain'],
         // Web
-        'htm'  => ['text/html', 'text/plain'],
-        'html' => ['text/html', 'text/plain'],
         'js'   => ['application/javascript', 'text/javascript', 'text/plain'],
         'mjs'  => ['application/javascript', 'text/javascript', 'text/plain'],
         'css'  => ['text/css', 'text/plain'],
@@ -701,7 +699,7 @@ class System
                 }
                 else {
                     $stats = stat('../files/' . $item);
-                    $out[] = ['file' => $item, 
+                    $out[] = ['file' => $item,
                             'modifiedTime' => $stats['mtime'],
                             'size' => $stats['size']];
                 }
