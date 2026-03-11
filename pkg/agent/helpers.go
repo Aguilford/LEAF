@@ -61,7 +61,6 @@ func (a Agent) HttpGet(url string) (*StaticHTTPResponse, error) {
 	}
 
 	req.Header.Set("Authorization", a.authToken)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := a.httpClient.Do(req)
 	if err != nil {

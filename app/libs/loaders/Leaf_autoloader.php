@@ -1,6 +1,7 @@
 <?php
 use App\Leaf\Db;
 use App\Leaf\Psr4AutoloaderClass;
+use App\Leaf\Security;
 use App\Leaf\Setting;
 use App\Leaf\Logger\DataActionLogger;
 
@@ -66,13 +67,25 @@ if (is_dir($working_dir . $site_paths['orgchart_path'])) {
     just needs to be cleaned up as much as possible.
 */
 
-if (!empty($site_paths['portal_database'])){
-    $db = new Db(DIRECTORY_HOST, DIRECTORY_USER, DIRECTORY_PASS, $site_paths['portal_database']);
-} else {
-    $db = new Db(DIRECTORY_HOST, DIRECTORY_USER, DIRECTORY_PASS, $site_paths['orgchart_database']);
+$safePDatabase = Security::isSafeSqlIdentifier($site_paths['portal_database']);
+$safeODatabase = Security::isSafeSqlIdentifier($site_paths['orgchart_database']);
+
+if ($safePDatabase === null && $safeODatabase === null) {
+    Security::denyAndLog('invalid_database_identifier', [
+        'portal_database' => $site_paths['portal_database'] ?? null,
+        'orgchart_database' => $site_paths['orgchart_database'] ?? null,
+    ]);
 }
 
-$oc_db = new Db(DIRECTORY_HOST, DIRECTORY_USER, DIRECTORY_PASS, $site_paths['orgchart_database']);
+try {
+    $db = new Db(DIRECTORY_HOST, DIRECTORY_USER, DIRECTORY_PASS, $safePDatabase ?? $safeODatabase);
+    $oc_db = new Db(DIRECTORY_HOST, DIRECTORY_USER, DIRECTORY_PASS, $safeODatabase);
+} catch (\Throwable $e) {
+    Security::denyAndLog('database_connection_failed', [
+        'exception' => get_class($e),
+        'message' => $e->getMessage(),
+    ]);
+}
 
 // get the settings for this portal
 $setting_up = new Setting($db);
@@ -146,13 +159,13 @@ if (!defined('S_LIB_PATH')) define('S_LIB_PATH', 'https://' . getenv('APP_HTTP_H
 if (!defined('ABSOLUTE_ORG_PATH')) define('ABSOLUTE_ORG_PATH', 'https://' . getenv('APP_HTTP_HOST') . $site_paths['orgchart_path']);
 if (!defined('ABSOLUTE_PORT_PATH')) define('ABSOLUTE_PORT_PATH', 'https://' . getenv('APP_HTTP_HOST') . $site_paths['site_path']);
 if (!defined('DOMAIN_PATH')) define('DOMAIN_PATH', 'https://' . getenv('APP_HTTP_HOST'));
-if (!defined('ORGCHART_DB')) define('ORGCHART_DB', $site_paths['orgchart_database']);
+if (!defined('ORGCHART_DB')) define('ORGCHART_DB', $safeODatabase !== null ? $safeODatabase : '');
 if (!defined('OC_DB')) define('OC_DB', $oc_db);
 if (!defined('LEAF_SETTINGS')) define('LEAF_SETTINGS', $settings);
 if (!defined('OC_SETTINGS')) define('OC_SETTINGS', $oc_settings);
 
-if (!empty($site_paths['portal_database'])) {
-    if (!defined('PORTAL_DB')) define('PORTAL_DB', $site_paths['portal_database']);
+if ($safePDatabase !== null) {
+    if (!defined('PORTAL_DB')) define('PORTAL_DB', $safePDatabase);
 } else {
-    if (!defined('PORTAL_DB')) define('PORTAL_DB', $site_paths['orgchart_database']);
+    if (!defined('PORTAL_DB')) define('PORTAL_DB', $safeODatabase ?? '');
 }

@@ -5,6 +5,7 @@
 
 namespace Orgchart;
 
+use App\Leaf\Security;
 use App\Leaf\XSSHelpers;
 
 class PlatformController extends RESTfulResponse
@@ -44,14 +45,18 @@ class PlatformController extends RESTfulResponse
                 $return_value = array();
 
                 foreach ($portals as $portal) {
-                    $sql = 'USE `' . $portal['portal_database'] . '`';
-                    $this->db->query($sql);
+                    $safeDatabase = Security::isSafeSqlIdentifier($portal['portal_database']);
 
-                    $return_value[] = array(
-                        'launchpadID' => $portal['launchpadID'],
-                        'site_path' => $portal['site_path'],
-                        'orgchartImportTags' => $this->platform->getTags($this->db)
-                    );
+                    if ($safeDatabase !== null) {
+                        $sql = 'USE `' . $safeDatabase . '`';
+                        $this->db->query($sql);
+
+                        $return_value[] = array(
+                            'launchpadID' => $portal['launchpadID'],
+                            'site_path' => $portal['site_path'],
+                            'orgchartImportTags' => $this->platform->getTags($this->db)
+                        );
+                    }
                 }
             }
 

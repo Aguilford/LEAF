@@ -26,7 +26,6 @@ func Runner(ctxExit context.Context, wg *sync.WaitGroup, task chan agent.Task) {
 	for {
 		select {
 		case t := <-task:
-			wg.Add(1)
 			leafAgent.ExecuteTask(t)
 			wg.Done()
 		case <-ctxExit.Done():
@@ -81,6 +80,7 @@ func ProcessTasks(ctxExit context.Context, useLLM bool) {
 
 		for _, task := range tasks {
 			if (!useLLM && !taskRequiresLLM(task)) || (taskRequiresLLM(task) && useLLM) {
+				wg.Add(1)
 				taskChan <- task
 
 				select {

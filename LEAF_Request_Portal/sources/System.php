@@ -29,6 +29,87 @@ class System
 
     private $fileExtensionWhitelist;
 
+    private $dangerousMimeTypes = [
+        'application/x-dosexec',
+        'application/x-executable',
+        'application/x-msdos-program',
+        'application/x-msdownload',
+        'application/x-httpd-php',
+        'application/x-php',
+        'text/x-php',
+        'application/x-shellscript',
+        'application/x-sh',
+        'application/x-csh',
+        'application/x-perl',
+        'application/x-python',
+        'application/x-bat',
+        'application/x-msi',
+    ];
+
+    private $mimeTypeMap = [
+        // Documents
+        'doc'  => ['application/msword'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'],
+        'docm' => ['application/vnd.ms-word.document.macroEnabled.12', 'application/zip'],
+        'dotx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'application/zip'],
+        'dotm' => ['application/vnd.ms-word.template.macroEnabled.12', 'application/zip'],
+        'pdf'  => ['application/pdf'],
+        'txt'  => ['text/plain'],
+        'rtf'  => ['text/rtf', 'application/rtf'],
+        // Spreadsheets
+        'csv'  => ['text/plain', 'text/csv', 'application/csv'],
+        'xls'  => ['application/vnd.ms-excel', 'application/msexcel'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'],
+        'xlsm' => ['application/vnd.ms-excel.sheet.macroEnabled.12', 'application/zip'],
+        'xltx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.template', 'application/zip'],
+        'xltm' => ['application/vnd.ms-excel.template.macroEnabled.12', 'application/zip'],
+        'xlsb' => ['application/vnd.ms-excel.sheet.binary.macroEnabled.12'],
+        'xlam' => ['application/vnd.ms-excel.addin.macroEnabled.12', 'application/zip'],
+        // Presentations
+        'ppt'  => ['application/vnd.ms-powerpoint'],
+        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'],
+        'pptm' => ['application/vnd.ms-powerpoint.presentation.macroEnabled.12', 'application/zip'],
+        'potx' => ['application/vnd.openxmlformats-officedocument.presentationml.template', 'application/zip'],
+        'potm' => ['application/vnd.ms-powerpoint.template.macroEnabled.12', 'application/zip'],
+        'ppam' => ['application/vnd.ms-powerpoint.addin.macroEnabled.12', 'application/zip'],
+        'ppsx' => ['application/vnd.openxmlformats-officedocument.presentationml.slideshow', 'application/zip'],
+        'ppsm' => ['application/vnd.ms-powerpoint.slideshow.macroEnabled.12', 'application/zip'],
+        'ppts' => ['application/vnd.ms-powerpoint', 'application/zip'],
+        // Graphics
+        'ai'   => ['application/postscript', 'application/pdf'],
+        'eps'  => ['application/postscript', 'image/x-eps'],
+        'png'  => ['image/png'],
+        'jpg'  => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'bmp'  => ['image/bmp', 'image/x-ms-bmp'],
+        'gif'  => ['image/gif'],
+        'tif'  => ['image/tiff'],
+        'svg'  => ['image/svg+xml', 'text/xml', 'application/xml', 'text/plain'],
+        // Web
+        'js'   => ['application/javascript', 'text/javascript', 'text/plain'],
+        'mjs'  => ['application/javascript', 'text/javascript', 'text/plain'],
+        'css'  => ['text/css', 'text/plain'],
+        'json' => ['application/json', 'text/plain'],
+        'xml'  => ['text/xml', 'application/xml', 'text/plain'],
+        'sql'  => ['text/plain', 'application/sql'],
+        'rdl'  => ['text/xml', 'application/xml', 'text/plain'],
+        // Archives
+        'zip'  => ['application/zip', 'application/x-zip-compressed'],
+        '7z'   => ['application/x-7z-compressed'],
+        'gz'   => ['application/gzip', 'application/x-gzip'],
+        // Other
+        'pbix' => ['application/zip', 'application/octet-stream'],
+        'vsd'  => ['application/vnd.visio', 'application/octet-stream'],
+        'pub'  => ['application/x-mspublisher', 'application/vnd.ms-publisher', 'application/octet-stream'],
+        'msg'  => ['application/vnd.ms-outlook', 'application/octet-stream'],
+        'ics'  => ['text/calendar', 'text/plain'],
+        'mht'  => ['message/rfc822', 'application/x-mimearchive', 'text/plain'],
+        'dwg'  => ['application/acad', 'application/x-acad', 'image/vnd.dwg', 'application/octet-stream'],
+        '3mf'  => ['application/vnd.ms-package.3dmanufacturing-3dmodel+xml', 'application/zip', 'application/octet-stream'],
+        'gcode'=> ['text/plain', 'application/octet-stream'],
+        'stl'  => ['application/vnd.ms-pki.stl', 'application/octet-stream', 'text/plain'],
+    ];
+
     private $site_data;
 
     private $dataActionLogger;
@@ -618,7 +699,7 @@ class System
                 }
                 else {
                     $stats = stat('../files/' . $item);
-                    $out[] = ['file' => $item, 
+                    $out[] = ['file' => $item,
                             'modifiedTime' => $stats['mtime'],
                             'size' => $stats['size']];
                 }
@@ -657,9 +738,304 @@ class System
             return 'Admin access required';
         }
 
+        // Validate file content MIME type matches claimed extension
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $detectedMime = $finfo->file($_FILES['file']['tmp_name']);
+
+        if (in_array($detectedMime, $this->dangerousMimeTypes))
+        {
+            return 'File content does not match the expected file type.';
+        }
+
+        $extLower = strtolower($ext);
+        if (isset($this->mimeTypeMap[$extLower]) && !in_array($detectedMime, $this->mimeTypeMap[$extLower]))
+        {
+            return 'File content does not match the expected file type.';
+        }
+
+        // Scan zip archives for dangerous file types
+        if ($extLower === 'zip')
+        {
+            $scanResult = $this->scanZipContents($_FILES['file']['tmp_name']);
+            if ($scanResult !== true)
+            {
+                return $scanResult;
+            }
+        }
+
         move_uploaded_file($_FILES['file']['tmp_name'], __DIR__ . '/../files/' . $fileName);
 
         return true;
+    }
+
+    /**
+     * Scan zip archive contents for dangerous file types.
+     *
+     * @param string $filePath Path to the zip file to scan
+     *
+     * @return true|string True if safe, error message string if dangerous content found
+     */
+    private function scanZipContents($filePath)
+    {
+        $dangerousExtensions = [
+            'exe', 'dll', 'com', 'bat', 'cmd', 'msi', 'scr', 'pif',
+            'php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phps',
+            'sh', 'bash', 'csh', 'ksh',
+            'pl', 'py', 'rb', 'ps1', 'psm1',
+            'jar', 'class', 'war',
+            'vbs', 'vbe', 'wsf', 'wsh',
+            'app', 'action', 'command', 'workflow',
+            'reg', 'inf', 'hta', 'cpl',
+        ];
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+
+        if (!class_exists('\ZipArchive'))
+        {
+            return $this->scanZipContentsWithoutExtension($filePath, $dangerousExtensions, $finfo);
+        }
+
+        $zip = new \ZipArchive();
+        $result = $zip->open($filePath);
+        if ($result !== true)
+        {
+            return 'Unable to read zip file for security scanning.';
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++)
+        {
+            $entryName = $zip->getNameIndex($i);
+
+            // Skip directory entries
+            if (substr($entryName, -1) === '/')
+            {
+                continue;
+            }
+
+            $entryExt = strtolower(pathinfo($entryName, PATHINFO_EXTENSION));
+            if (in_array($entryExt, $dangerousExtensions))
+            {
+                $zip->close();
+
+                return 'Zip file contains a potentially dangerous file type: .' . $entryExt;
+            }
+
+            // Validate file content MIME type for each entry
+            $entryContents = $zip->getFromIndex($i);
+            if ($entryContents === false)
+            {
+                continue;
+            }
+
+            $detectedMime = $finfo->buffer($entryContents);
+
+            // Block dangerous MIME types regardless of extension
+            if (in_array($detectedMime, $this->dangerousMimeTypes))
+            {
+                $zip->close();
+
+                return 'Zip file contains a file with dangerous content: ' . htmlspecialchars($entryName);
+            }
+
+            // Check extension-to-MIME mapping if the extension is in our map
+            if (isset($this->mimeTypeMap[$entryExt]) && !in_array($detectedMime, $this->mimeTypeMap[$entryExt]))
+            {
+                $zip->close();
+
+                return 'Zip file contains a file whose content does not match its extension: ' . htmlspecialchars($entryName);
+            }
+        }
+
+        $zip->close();
+
+        return true;
+    }
+
+    private function scanZipContentsWithoutExtension($filePath, array $dangerousExtensions, \finfo $finfo)
+    {
+        $entries = $this->readZipEntries($filePath);
+        if ($entries === false)
+        {
+            return 'Unable to read zip file for security scanning.';
+        }
+
+        foreach ($entries as $entry)
+        {
+            $entryName = $entry['name'];
+            if (substr($entryName, -1) === '/')
+            {
+                continue;
+            }
+
+            $entryExt = strtolower(pathinfo($entryName, PATHINFO_EXTENSION));
+            if (in_array($entryExt, $dangerousExtensions))
+            {
+                return 'Zip file contains a potentially dangerous file type: .' . $entryExt;
+            }
+
+            $entryContents = $this->readZipEntryContents($filePath, $entry);
+            if ($entryContents === false)
+            {
+                continue;
+            }
+
+            $detectedMime = $finfo->buffer($entryContents);
+            if (in_array($detectedMime, $this->dangerousMimeTypes))
+            {
+                return 'Zip file contains a file with dangerous content: ' . htmlspecialchars($entryName);
+            }
+
+            if (isset($this->mimeTypeMap[$entryExt]) && !in_array($detectedMime, $this->mimeTypeMap[$entryExt]))
+            {
+                return 'Zip file contains a file whose content does not match its extension: ' . htmlspecialchars($entryName);
+            }
+        }
+
+        return true;
+    }
+
+    private function readZipEntries($filePath)
+    {
+        $data = @file_get_contents($filePath);
+        if ($data === false)
+        {
+            return false;
+        }
+
+        $eocdOffset = $this->findZipEndOfCentralDirectory($data);
+        if ($eocdOffset === false)
+        {
+            return false;
+        }
+
+        $eocd = unpack(
+            'Vsignature/vdisk/vcentralDisk/vdiskEntries/vtotalEntries/VcentralSize/VcentralOffset/vcommentLength',
+            substr($data, $eocdOffset, 22)
+        );
+
+        if (!isset($eocd['signature']) || $eocd['signature'] !== 0x06054b50)
+        {
+            return false;
+        }
+
+        $entries = [];
+        $offset = $eocd['centralOffset'];
+        for ($i = 0; $i < $eocd['totalEntries']; $i++)
+        {
+            $header = substr($data, $offset, 46);
+            if (strlen($header) < 46)
+            {
+                return false;
+            }
+
+            $entry = unpack(
+                'Vsignature/vversionMade/vversionNeeded/vflags/vcompression/vmodTime/vmodDate/Vcrc/VcompressedSize/VuncompressedSize/vnameLength/vextraLength/vcommentLength/vdiskStart/vinternalAttrs/VexternalAttrs/VlocalHeaderOffset',
+                $header
+            );
+
+            if (!isset($entry['signature']) || $entry['signature'] !== 0x02014b50)
+            {
+                return false;
+            }
+
+            $nameOffset = $offset + 46;
+            $name = substr($data, $nameOffset, $entry['nameLength']);
+            if ($name === false)
+            {
+                return false;
+            }
+
+            $entries[] = [
+                'name' => $name,
+                'compression' => $entry['compression'],
+                'compressedSize' => $entry['compressedSize'],
+                'uncompressedSize' => $entry['uncompressedSize'],
+                'localHeaderOffset' => $entry['localHeaderOffset'],
+            ];
+
+            $offset += 46 + $entry['nameLength'] + $entry['extraLength'] + $entry['commentLength'];
+        }
+
+        return $entries;
+    }
+
+    private function findZipEndOfCentralDirectory($data)
+    {
+        $maxCommentLength = 0xFFFF;
+        $searchStart = max(0, strlen($data) - ($maxCommentLength + 22));
+
+        for ($offset = strlen($data) - 22; $offset >= $searchStart; $offset--)
+        {
+            if (substr($data, $offset, 4) === "\x50\x4b\x05\x06")
+            {
+                return $offset;
+            }
+        }
+
+        return false;
+    }
+
+    private function readZipEntryContents($filePath, array $entry)
+    {
+        $handle = @fopen($filePath, 'rb');
+        if ($handle === false)
+        {
+            return false;
+        }
+
+        if (fseek($handle, $entry['localHeaderOffset']) !== 0)
+        {
+            fclose($handle);
+
+            return false;
+        }
+
+        $localHeader = fread($handle, 30);
+        if ($localHeader === false || strlen($localHeader) < 30)
+        {
+            fclose($handle);
+
+            return false;
+        }
+
+        $parsed = unpack(
+            'Vsignature/vversionNeeded/vflags/vcompression/vmodTime/vmodDate/Vcrc/VcompressedSize/VuncompressedSize/vnameLength/vextraLength',
+            $localHeader
+        );
+        if (!isset($parsed['signature']) || $parsed['signature'] !== 0x04034b50)
+        {
+            fclose($handle);
+
+            return false;
+        }
+
+        $dataOffset = $entry['localHeaderOffset'] + 30 + $parsed['nameLength'] + $parsed['extraLength'];
+        if (fseek($handle, $dataOffset) !== 0)
+        {
+            fclose($handle);
+
+            return false;
+        }
+
+        $compressedData = fread($handle, $entry['compressedSize']);
+        fclose($handle);
+
+        if ($compressedData === false || strlen($compressedData) !== (int)$entry['compressedSize'])
+        {
+            return false;
+        }
+
+        switch ($entry['compression'])
+        {
+            case 0:
+                return $compressedData;
+            case 8:
+                $inflated = @gzinflate($compressedData);
+
+                return $inflated === false ? false : $inflated;
+            default:
+                return false;
+        }
     }
 
     public function removeFile($in)
