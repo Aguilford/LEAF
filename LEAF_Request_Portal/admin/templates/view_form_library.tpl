@@ -1,9 +1,3 @@
-<script src="../js/dialogController.js"></script>
-<script src="../js/formGrid.js"></script>
-<script src="../js/formQuery.js"></script>
-<script src="../js/formSearch.js"></script>
-<script src="../js/LeafPreview.js"></script>
-
 <!--{include file="site_elements/generic_simple_xhrDialog.tpl"}-->
 <style>
 #page_breadcrumbs {

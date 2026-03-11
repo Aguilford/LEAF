@@ -401,11 +401,16 @@ switch ($action) {
                $t_form->assign('LEAF_DOMAIN', LEAF_DOMAIN);
                $t_form->assign('app_js_path', APP_JS_PATH);
 
-               $main->assign('body', $t_form->fetch('view_form_library.tpl'));
-
                $main->assign('javascripts', array(
                 APP_JS_PATH . '/dompurify/dompurify.min.js',
+                '../js/dialogController.js',
+                '../js/formGrid.js',
+                '../js/formQuery.js',
+                '../js/formSearch.js',
+                '../js/LeafPreview.js'
                 ));
+
+                $main->assign('body', $t_form->fetch('view_form_library.tpl'));
            }
            else
            {
@@ -415,6 +420,7 @@ switch ($action) {
            $tabText = 'LEAF Library';
 
            break;
+
     case 'importForm':
         $t_form = new Smarty;
         $t_form->left_delimiter = '<!--{';
