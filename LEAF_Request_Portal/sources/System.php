@@ -89,7 +89,7 @@ class System
         'js'   => ['application/javascript', 'text/javascript', 'text/plain', 'text/html'],
         'mjs'  => ['application/javascript', 'text/javascript', 'text/plain', 'text/html'],
         'css'  => ['text/css', 'text/plain'],
-        'json' => ['application/json', 'text/plain', 'text/html'],
+        'json' => ['application/json', 'text/plain'],
         'xml'  => ['text/xml', 'application/xml', 'text/plain'],
         'sql'  => ['text/plain', 'application/sql', 'text/html'],
         'rdl'  => ['text/xml', 'application/xml', 'text/plain'],
