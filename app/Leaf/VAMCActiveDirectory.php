@@ -49,25 +49,26 @@ class VAMCActiveDirectory
     {
         $data = $this->getData($file);
         $rawdata = explode("\r\n", $data[0]['data']);
-        $rawheaders = trim(array_shift($rawdata));
-        $rawheaders = explode(',', $rawheaders);
+        $headerLine = trim(array_shift($rawdata));
+        $rawheaders = $this->splitWithEscape($headerLine);
 
         foreach ($rawdata as $key => $line) {
-            $t = $this->splitWithEscape($line);
-            array_walk($t, array($this, 'trimField2'));
+            if (empty(trim($line))) {
+                continue;
+            }
 
-            if (!is_array($t)) {
+            $t = $this->splitWithEscape($line);
+            
+            if (!is_array($t) || count($t) === 0) {
                 return 'invalid service';
             }
 
-            foreach ($t as $t_key => $val) {
-                $head_check = $rawheaders[$t_key];
+            array_walk($t, array($this, 'trimField2'));
 
-                if (!isset($this->headers[$head_check])) {
-                    return 'invalid header';
+            foreach ($rawheaders as $h_key => $header) {
+                if (isset($this->headers[$header]) && isset($t[$h_key])) {
+                    $write_data[$key][$this->headers[$header]] = $t[$h_key];
                 }
-
-                $write_data[$key][$this->headers[$head_check]] = $val;
             }
         }
 
@@ -407,16 +408,12 @@ class VAMCActiveDirectory
 
             if ($inEscapeSeq) {
                 if ($c == $escapeChar) {
-                    // lookahead to see if next character is also an escape char
                     if ($i == ($len - 1)) {
-                        // c is last char, so must be end of escape sequence
                         $inEscapeSeq = false;
                     } elseif (substr($str, $i + 1, 1) == $escapeChar) {
-                        // append literal escape char
                         $currToken .= $escapeChar;
                         $i++;
                     } else {
-                        // end of escape sequence
                         $inEscapeSeq = false;
                     }
                 } else {
@@ -424,11 +421,9 @@ class VAMCActiveDirectory
                 }
             } else {
                 if ($c == $delimiterChar) {
-                    // end of token, flush it
                     array_push($tokens, $currToken);
                     $currToken = '';
                 } elseif ($c == $escapeChar) {
-                    // begin escape sequence
                     $inEscapeSeq = true;
                 } else {
                     $currToken .= $c;
@@ -438,8 +433,14 @@ class VAMCActiveDirectory
             $i++;
         }
 
-        // flush the last token
         array_push($tokens, $currToken);
+
+        if (!$inEscapeSeq && substr_count($str, $delimiterChar) > count($tokens) - 1) {
+            $expectedTokens = substr_count($str, $delimiterChar) + 1;
+            while (count($tokens) < $expectedTokens) {
+                array_push($tokens, '');
+            }
+        }
 
         return $tokens;
     }
