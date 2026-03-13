@@ -408,12 +408,16 @@ class VAMCActiveDirectory
 
             if ($inEscapeSeq) {
                 if ($c == $escapeChar) {
+                    // lookahead to see if next character is also an escape char
                     if ($i == ($len - 1)) {
+                        // c is last char, so must be end of escape sequence
                         $inEscapeSeq = false;
                     } elseif (substr($str, $i + 1, 1) == $escapeChar) {
+                        // append literal escape char
                         $currToken .= $escapeChar;
                         $i++;
                     } else {
+                        // end of escape sequence
                         $inEscapeSeq = false;
                     }
                 } else {
@@ -421,9 +425,11 @@ class VAMCActiveDirectory
                 }
             } else {
                 if ($c == $delimiterChar) {
+                    // end of token, flush it
                     array_push($tokens, $currToken);
                     $currToken = '';
                 } elseif ($c == $escapeChar) {
+                    // begin escape sequence
                     $inEscapeSeq = true;
                 } else {
                     $currToken .= $c;
@@ -433,6 +439,7 @@ class VAMCActiveDirectory
             $i++;
         }
 
+        // flush the last token
         array_push($tokens, $currToken);
 
         if (!$inEscapeSeq && substr_count($str, $delimiterChar) > count($tokens) - 1) {
