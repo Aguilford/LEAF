@@ -86,12 +86,12 @@ class System
         'tif'  => ['image/tiff'],
         'svg'  => ['image/svg+xml', 'text/xml', 'application/xml', 'text/plain'],
         // Web
-        'js'   => ['application/javascript', 'text/javascript', 'text/plain'],
-        'mjs'  => ['application/javascript', 'text/javascript', 'text/plain'],
+        'js'   => ['application/javascript', 'text/javascript', 'text/plain', 'text/html'],
+        'mjs'  => ['application/javascript', 'text/javascript', 'text/plain', 'text/html'],
         'css'  => ['text/css', 'text/plain'],
-        'json' => ['application/json', 'text/plain'],
+        'json' => ['application/json', 'text/plain', 'text/html'],
         'xml'  => ['text/xml', 'application/xml', 'text/plain'],
-        'sql'  => ['text/plain', 'application/sql'],
+        'sql'  => ['text/plain', 'application/sql', 'text/html'],
         'rdl'  => ['text/xml', 'application/xml', 'text/plain'],
         // Archives
         'zip'  => ['application/zip', 'application/x-zip-compressed'],
