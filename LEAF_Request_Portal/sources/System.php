@@ -54,7 +54,7 @@ class System
         'dotx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'application/zip'],
         'dotm' => ['application/vnd.ms-word.template.macroEnabled.12', 'application/zip'],
         'pdf'  => ['application/pdf'],
-        'txt'  => ['text/plain'],
+        'txt'  => ['text/plain', 'text/html'],
         'rtf'  => ['text/rtf', 'application/rtf'],
         // Spreadsheets
         'csv'  => ['text/plain', 'text/csv', 'application/csv'],
