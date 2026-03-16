@@ -442,12 +442,6 @@ class VAMCActiveDirectory
         // flush the last token
         array_push($tokens, $currToken);
 
-        if (!$inEscapeSeq && substr_count($str, $delimiterChar) > count($tokens) - 1) {
-            $expectedTokens = substr_count($str, $delimiterChar) + 1;
-            while (count($tokens) < $expectedTokens) {
-                array_push($tokens, '');
-            }
-        }
 
         return $tokens;
     }
