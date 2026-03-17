@@ -49,25 +49,26 @@ class VAMCActiveDirectory
     {
         $data = $this->getData($file);
         $rawdata = explode("\r\n", $data[0]['data']);
-        $rawheaders = trim(array_shift($rawdata));
-        $rawheaders = explode(',', $rawheaders);
+        $headerLine = trim(array_shift($rawdata));
+        $rawheaders = $this->splitWithEscape($headerLine);
 
         foreach ($rawdata as $key => $line) {
-            $t = $this->splitWithEscape($line);
-            array_walk($t, array($this, 'trimField2'));
+            if (empty(trim($line))) {
+                continue;
+            }
 
-            if (!is_array($t)) {
+            $t = $this->splitWithEscape($line);
+            
+            if (!is_array($t) || count($t) === 0) {
                 return 'invalid service';
             }
 
-            foreach ($t as $t_key => $val) {
-                $head_check = $rawheaders[$t_key];
+            array_walk($t, array($this, 'trimField2'));
 
-                if (!isset($this->headers[$head_check])) {
-                    return 'invalid header';
+            foreach ($rawheaders as $h_key => $header) {
+                if (isset($this->headers[$header]) && isset($t[$h_key])) {
+                    $write_data[$key][$this->headers[$header]] = $t[$h_key];
                 }
-
-                $write_data[$key][$this->headers[$head_check]] = $val;
             }
         }
 
@@ -440,6 +441,7 @@ class VAMCActiveDirectory
 
         // flush the last token
         array_push($tokens, $currToken);
+
 
         return $tokens;
     }
