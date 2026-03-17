@@ -54,7 +54,7 @@ class System
         'dotx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'application/zip'],
         'dotm' => ['application/vnd.ms-word.template.macroEnabled.12', 'application/zip'],
         'pdf'  => ['application/pdf'],
-        'txt'  => ['text/plain'],
+        'txt'  => ['text/plain', 'text/html'],
         'rtf'  => ['text/rtf', 'application/rtf'],
         // Spreadsheets
         'csv'  => ['text/plain', 'text/csv', 'application/csv'],
@@ -86,12 +86,12 @@ class System
         'tif'  => ['image/tiff'],
         'svg'  => ['image/svg+xml', 'text/xml', 'application/xml', 'text/plain'],
         // Web
-        'js'   => ['application/javascript', 'text/javascript', 'text/plain'],
-        'mjs'  => ['application/javascript', 'text/javascript', 'text/plain'],
+        'js'   => ['application/javascript', 'text/javascript', 'text/plain', 'text/html'],
+        'mjs'  => ['application/javascript', 'text/javascript', 'text/plain', 'text/html'],
         'css'  => ['text/css', 'text/plain'],
         'json' => ['application/json', 'text/plain'],
         'xml'  => ['text/xml', 'application/xml', 'text/plain'],
-        'sql'  => ['text/plain', 'application/sql'],
+        'sql'  => ['text/plain', 'application/sql', 'text/html'],
         'rdl'  => ['text/xml', 'application/xml', 'text/plain'],
         // Archives
         'zip'  => ['application/zip', 'application/x-zip-compressed'],
